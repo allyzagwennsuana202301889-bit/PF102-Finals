@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- TOP BAR OUTSIDE CONTAINER -->
+  <header class="top-bar">
+    <h1>Task Manager</h1>
+    <div class="top-controls">
+      <input type="text" id="searchInput" placeholder="Search Task">
+      <select id="categoryFilter">
+        <option value="all">Categories</option>
+        <option value="Work">Work</option>
+        <option value="Personal">Personal</option>
+        <option value="School">School</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="container">
+    <div class="task">
+      
+      <!-- COUNTER -->
+      <div class="task-counter">
+        <span id="totalCount">0</span> total | 
+        <span id="completedCount">0</span> completed | 
+        <span id="pendingCount">0</span> pending
+      </div>
+
+      <!-- NOTIFICATION -->
+      <div id="notification" class="hidden"></div>
+
+      <!-- ADD TASK FORM -->
+   <form id="taskForm" class="input-wrapper">
+  <div class="form-left">
+    <input type="text" id="taskInput" placeholder="Enter task..." required>
+  </div>
+  <div class="form-right">
+    <select id="categoryInput">
+      <option value="Work">Work</option>
+      <option value="Personal">Personal</option>
+      <option value="School">School</option>
+    </select>
+    <input type="number" id="timerInput" placeholder="Min" min="1" max="180">
+    <button type="submit" id="addTaskButton">Add to List</button>
+    <button type="button" id="cancelEditButton" class="hidden">Cancel</button>
+  </div>
+</form>
+
+      <!-- LOADING -->
+      <div id="loading" class="hidden">Loading...</div>
+
+      <!-- TASK LIST -->
+      <ul id="taskList"></ul>
+
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
