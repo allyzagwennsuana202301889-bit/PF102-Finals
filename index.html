@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Task Manager</title>
   <link rel="stylesheet" href="style.css">
+  <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -19,13 +21,20 @@
         <option value="Personal">Personal</option>
         <option value="School">School</option>
       </select>
+      <button id="exportButton" class="export-btn">Export JSON</button>
+
+      <!-- TOGGLE SWITCH -->
+      <label class="toggle-switch" for="themeToggle">
+        <input type="checkbox" id="themeToggle">
+        <span class="toggle-slider"></span>
+      </label>
     </div>
   </header>
 
   <!-- MAIN CONTENT -->
   <main class="container">
     <div class="task">
-      
+
       <!-- COUNTER -->
       <div class="task-counter">
         <span id="totalCount">0</span> total | 
@@ -46,6 +55,11 @@
       <option value="Work">Work</option>
       <option value="Personal">Personal</option>
       <option value="School">School</option>
+    </select>
+    <select id="priorityInput">
+      <option value="High">High</option>
+      <option value="Medium" selected>Medium</option>
+      <option value="Low">Low</option>
     </select>
     <input type="number" id="timerInput" placeholder="Min" min="1" max="180">
     <button type="submit" id="addTaskButton">Add to List</button>

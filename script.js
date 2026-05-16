@@ -1,10 +1,12 @@
 let tasks = [];
 let editingIndex = null;
 let users = [];
+let isLightMode = false;
 
 const taskForm = document.getElementById('taskForm');
 const taskInput = document.getElementById('taskInput');
 const categoryInput = document.getElementById('categoryInput');
+const priorityInput = document.getElementById('priorityInput');
 const timerInput = document.getElementById('timerInput');
 const addButton = document.getElementById('addTaskButton');
 const cancelButton = document.getElementById('cancelEditButton');
@@ -12,22 +14,55 @@ const searchInput = document.getElementById('searchInput');
 const categoryFilter = document.getElementById('categoryFilter');
 const loadingDiv = document.getElementById('loading');
 const notificationDiv = document.getElementById('notification');
+const exportButton = document.getElementById('exportButton');
+const themeToggle = document.getElementById('themeToggle');
+
+// =====================
+// THEME TOGGLE
+// =====================
+function loadTheme() {
+  const savedTheme = localStorage.getItem('taskManagerTheme');
+  if (savedTheme === 'light') {
+    isLightMode = true;
+    document.body.classList.add('light-mode');
+    themeToggle.checked = true;
+  } else {
+    isLightMode = false;
+    document.body.classList.remove('light-mode');
+    themeToggle.checked = false;
+  }
+}
+
+function toggleTheme() {
+  isLightMode = themeToggle.checked;
+  if (isLightMode) {
+    document.body.classList.add('light-mode');
+    localStorage.setItem('taskManagerTheme', 'light');
+  } else {
+    document.body.classList.remove('light-mode');
+    localStorage.setItem('taskManagerTheme', 'dark');
+  }
+}
+
+themeToggle.addEventListener('change', toggleTheme);
 
 // =====================
 // ADD OR UPDATE TASK
 // =====================
 taskForm.addEventListener('submit', function (e) {
   e.preventDefault();
-  
+
   const taskText = taskInput.value.trim();
   const category = categoryInput.value;
+  const priority = priorityInput.value;
   const timerMinutes = parseInt(timerInput.value) || 0;
-  
+
   if (taskText === '') return;
 
   if (editingIndex !== null) {
     tasks[editingIndex].text = taskText;
     tasks[editingIndex].category = category;
+    tasks[editingIndex].priority = priority;
     if (timerMinutes > 0) {
       tasks[editingIndex].timerDuration = timerMinutes * 60;
       tasks[editingIndex].timerRemaining = timerMinutes * 60;
@@ -40,6 +75,7 @@ taskForm.addEventListener('submit', function (e) {
       text: taskText, 
       completed: false,
       category: category,
+      priority: priority,
       id: Date.now(),
       timerDuration: duration,
       timerRemaining: duration,
@@ -51,6 +87,7 @@ taskForm.addEventListener('submit', function (e) {
 
   taskInput.value = '';
   timerInput.value = '';
+  priorityInput.value = 'Medium';
   renderTasks();
   saveTasks();
   updateCounter();
@@ -65,6 +102,7 @@ function stopEditing() {
   editingIndex = null;
   taskInput.value = '';
   timerInput.value = '';
+  priorityInput.value = 'Medium';
   addButton.textContent = 'Add to List';
   cancelButton.classList.add('hidden');
   taskInput.placeholder = 'Enter task...';
@@ -85,12 +123,12 @@ function formatTime(seconds) {
 // =====================
 function startTimer(index) {
   if (tasks[index].timerInterval) return;
-  
+
   tasks[index].timerRunning = true;
-  
+
   tasks[index].timerInterval = setInterval(() => {
     tasks[index].timerRemaining--;
-    
+
     if (tasks[index].timerRemaining <= 0) {
       clearInterval(tasks[index].timerInterval);
       tasks[index].timerInterval = null;
@@ -98,11 +136,11 @@ function startTimer(index) {
       tasks[index].timerRemaining = 0;
       showNotification(`⏰ Timer finished: "${tasks[index].text}"`);
     }
-    
+
     renderTasks(searchInput.value, categoryFilter.value);
     saveTasks();
   }, 1000);
-  
+
   renderTasks(searchInput.value, categoryFilter.value);
 }
 
@@ -124,6 +162,41 @@ function resetTimer(index) {
 }
 
 // =====================
+// EXPORT JSON
+// =====================
+function exportToJSON() {
+  if (tasks.length === 0) {
+    showNotification('No tasks to export!');
+    return;
+  }
+
+  const tasksToExport = tasks.map(t => ({
+    text: t.text,
+    completed: t.completed,
+    category: t.category,
+    priority: t.priority,
+    timerDuration: t.timerDuration,
+    timerRemaining: t.timerRemaining
+  }));
+
+  const dataStr = JSON.stringify(tasksToExport, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tasks_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  showNotification('Tasks exported to JSON!');
+}
+
+exportButton.addEventListener('click', exportToJSON);
+
+// =====================
 // RENDER TASKS
 // =====================
 function renderTasks(searchText = '', category = 'all') {
@@ -135,6 +208,10 @@ function renderTasks(searchText = '', category = 'all') {
     const matchesCategory = category === 'all' || task.category === category;
     return matchesSearch && matchesCategory;
   });
+
+  // Sort by priority: High > Medium > Low
+  const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
+  filteredTasks.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]);
 
   if (filteredTasks.length === 0) {
     const emptyMessage = document.createElement('li');
@@ -151,14 +228,25 @@ function renderTasks(searchText = '', category = 'all') {
     li.dataset.index = originalIndex;
     if (task.completed) li.classList.add('completed');
 
-    // --- TOP ROW: category badge + buttons ---
+    // --- TOP ROW: category badge + priority badge + buttons ---
     const topRow = document.createElement('div');
     topRow.className = 'task-top-row';
+
+    const badgesGroup = document.createElement('div');
+    badgesGroup.className = 'badges-group';
 
     const badge = document.createElement('span');
     badge.className = 'category-badge';
     badge.textContent = task.category;
     badge.style.background = getCategoryColor(task.category);
+
+    const priorityBadge = document.createElement('span');
+    priorityBadge.className = 'priority-badge';
+    priorityBadge.textContent = task.priority;
+    priorityBadge.classList.add(`priority-${task.priority.toLowerCase()}`);
+
+    badgesGroup.appendChild(badge);
+    badgesGroup.appendChild(priorityBadge);
 
     const btnGroup = document.createElement('div');
     btnGroup.className = 'task-buttons';
@@ -179,7 +267,7 @@ function renderTasks(searchText = '', category = 'all') {
     btnGroup.appendChild(completeButton);
     btnGroup.appendChild(deleteButton);
 
-    topRow.appendChild(badge);
+    topRow.appendChild(badgesGroup);
     topRow.appendChild(btnGroup);
 
     // --- TASK TEXT ---
@@ -241,7 +329,7 @@ function getCategoryColor(category) {
   const colors = {
     'Work': '#e94560',
     'Personal': '#533483',
-    'School': '#0f3460',
+    'School': '#116c74',
   };
   return colors[category] || '#666';
 }
@@ -290,6 +378,7 @@ function startEditing(index) {
   editingIndex = index;
   taskInput.value = tasks[index].text;
   categoryInput.value = tasks[index].category;
+  priorityInput.value = tasks[index].priority || 'Medium';
   timerInput.value = tasks[index].timerDuration > 0 ? tasks[index].timerDuration / 60 : '';
   taskInput.focus();
   addButton.textContent = 'Update Task';
@@ -331,7 +420,7 @@ function updateCounter() {
   const total = tasks.length;
   const completed = tasks.filter(t => t.completed).length;
   const pending = total - completed;
-  
+
   document.getElementById('totalCount').textContent = total;
   document.getElementById('completedCount').textContent = completed;
   document.getElementById('pendingCount').textContent = pending;
@@ -357,6 +446,7 @@ function loadTasks() {
       tasks.forEach(t => {
         t.timerInterval = null;
         t.timerRunning = false;
+        if (!t.priority) t.priority = 'Medium';
       });
     }
     resolve();
@@ -386,6 +476,7 @@ fetchCategories();
 // INITIAL LOAD
 // =====================
 loadTasks().then(() => {
+  loadTheme();
   renderTasks();
   updateCounter();
 });
